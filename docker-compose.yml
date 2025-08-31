@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  weather-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: weather-api
+    ports:
+      - "${PORT:-8080}:8080"
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - weather-network
+    volumes:
+      # Optional: Mount logs directory if you add logging
+      - ./logs:/app/logs
+
+  # Development service with hot reload (optional)
+  weather-api-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: weather-api-dev
+    ports:
+      - "${DEV_PORT:-8081}:8080"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - go-mod-cache:/go/pkg/mod
+    restart: unless-stopped
+    networks:
+      - weather-network
+    profiles:
+      - dev
+
+networks:
+  weather-network:
+    driver: bridge
+
+volumes:
+  go-mod-cache:
