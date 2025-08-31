@@ -46,8 +46,11 @@ This project follows **Hexagonal Architecture** principles, ensuring clean separ
 
 - Go 1.24.2 or higher
 - OpenWeather API key ([Get one here](https://openweathermap.org/api))
+- Docker and Docker Compose (for containerized deployment)
 
 ### Installation
+
+#### Option 1: Local Development
 
 1. **Clone the repository**
    ```bash
@@ -77,6 +80,32 @@ This project follows **Hexagonal Architecture** principles, ensuring clean separ
    ```
 
 The server will start on `http://localhost:8080`
+
+#### Option 2: Docker Deployment
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd go-weather-api
+   ```
+
+2. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your OpenWeather API key
+   export OPENWEATHER_API_KEY=your_api_key_here
+   ```
+
+3. **Run with Docker Compose**
+   ```bash
+   # Production
+   make docker-run
+   
+   # Development with hot reload
+   make docker-dev
+   ```
+
+The server will start on `http://localhost:8080` (production) or `http://localhost:8081` (development)
 
 ## 📡 API Endpoints
 
@@ -160,6 +189,13 @@ make test          # Run all tests
 make run           # Run the application
 make clean         # Clean build artifacts
 make deps          # Download dependencies
+
+# Docker commands
+make docker-build  # Build Docker image
+make docker-run    # Run with Docker Compose (production)
+make docker-dev    # Run development environment with hot reload
+make docker-stop   # Stop Docker containers
+make docker-clean  # Clean Docker containers and images
 ```
 
 ### Project Structure
@@ -178,6 +214,17 @@ The application uses environment variables for configuration:
 |----------|-------------|---------|
 | `PORT` | Server port | `8080` |
 | `OPENWEATHER_API_KEY` | OpenWeather API key | Required |
+
+### Docker Configuration
+
+The application includes Docker support with the following features:
+
+- **Multi-stage builds** for optimized production images
+- **Development environment** with hot reload using Air
+- **Health checks** for container monitoring
+- **Non-root user** for security
+- **Volume mounting** for development
+- **Network isolation** with custom bridge network
 
 ## 🏛️ Architecture Benefits
 
