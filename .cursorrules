@@ -1,0 +1,128 @@
+# Cursor Rules for Go Weather API
+
+Project: Go (Gin) Weather API with Hexagonal Architecture, Swagger docs, Circuit Breaker, Docker.
+Primary language: Go 1.24.2
+
+## Repository Structure & Ownership
+- cmd/server/: entrypoint, bootstrapping, DI, imports `docs` for Swagger. Do not add business logic here.
+- internal/core/: domain + services only. No HTTP, no external calls.
+  - domain/entity/: pure domain structs
+  - domain/repository/: interfaces (ports) only
+  - service/: business logic, depends on repository interfaces
+- internal/infrastructure/: adapters and config
+  - adapter/weather/: OpenWeather adapter, HTTP calls, circuit breaker
+  - config/: configuration loading
+  - support/: shared infra helpers (errors, etc.)
+- internal/interfaces/http/: adapters for HTTP
+  - handler/: Gin handlers, no business logic
+  - middleware/: logging, CORS
+  - router/: route wiring and Swagger UI mounting
+- pkg/circuitbreaker/: reusable circuit breaker utilities
+- docs/: generated Swagger artifacts (generated; do not hand-edit)
+
+## Architectural Rules (Enforced)
+- Core must not import infrastructure or interfaces. Enforce dependency direction: interfaces and infrastructure depend on core.
+- Handlers call services via interfaces; services depend on repository interfaces; concrete adapters live in infrastructure.
+- Keep HTTP, JSON, and external API specifics outside core.
+- Avoid global state. Prefer dependency injection in `cmd/server/main.go` and `internal/server/`.
+
+## Coding Conventions (Go)
+- Follow idiomatic Go (gofmt, go vet). Use descriptive names; avoid 1–2 letter identifiers.
+- Prefer small, focused functions; use guard clauses.
+- Handle errors explicitly; no silent catches.
+- Add brief doc comments for exported types/functions.
+- Keep tests deterministic and isolated.
+
+## Testing Policy
+- Maintain/expand current coverage:
+  - service: ~80%
+  - adapter: ≥80%
+  - handler: ≥80%
+- Test pyramid:
+  - service tests with mock repositories
+  - adapter tests with httptest servers
+  - handler tests with Gin test utilities
+- Use `testify` for assertions and mocking where helpful.
+- Commands:
+  - Run all tests: `make test` or `go test -v ./...`
+  - Coverage: `go test -v -cover ./...`
+
+## Swagger / API Docs
+- View:
+  - Local: http://localhost:8080/swagger/index.html
+  - Dev (Docker): http://localhost:8081/swagger/index.html
+- Generate/update docs (do not manually edit files in `docs/`):
+  - Install: `go install github.com/swaggo/swag/cmd/swag@latest`
+  - Generate: `swag init -g cmd/server/main.go -o docs`
+- Keep `_ "weather-api/docs"` import in `cmd/server/main.go`.
+
+## Running & Build
+- Local run: `make run` (requires OPENWEATHER_API_KEY)
+- Build: `make build`
+- Deps: `make deps`
+- Docker:
+  - Production: `make docker-run`
+  - Dev hot-reload: `make docker-dev`
+  - Stop/Clean: `make docker-stop` / `make docker-clean`
+
+## Error Handling & Logging
+- Use structured logs in handlers/middleware; do not log inside core services unless critical domain events.
+- Map errors to HTTP responses only in handlers.
+- Centralize common errors in `internal/infrastructure/support/errors.go` when appropriate.
+
+## API Handlers
+- Validate inputs in handlers; return 400 for invalid parameters.
+- On success, return consistent envelope: `{ "success": true, "data": ... }`.
+- On error, return `{ "success": false, "error": "message" }` with correct status code.
+
+## Configuration
+- Read configuration via `internal/infrastructure/config`. Do not read env vars directly from handlers/services.
+- Required: `OPENWEATHER_API_KEY`. Optional: `PORT` (default 8080).
+
+## Circuit Breaker
+- For external HTTP calls (OpenWeather), use circuit breaker utilities from `pkg/circuitbreaker/` within infrastructure adapters.
+- Do not use circuit breaker in core.
+
+## Dependency Management
+- Use Go modules. Keep `go.mod` and `go.sum` clean via `make deps`.
+- Prefer standard library first; then well-maintained deps (Gin, swaggo, testify).
+
+## Code Review Checklist
+- Does the change respect hexagonal boundaries and import directions?
+- Are handlers free of business logic? Are services free of HTTP concerns?
+- Are errors handled and surfaced with appropriate HTTP status codes?
+- Are tests added/updated with clear assertions and deterministic behavior?
+- If API changes: did you update Swagger annotations and regenerate `docs/`?
+- No unrelated reformatting or large diffs.
+
+## Commit & PR Guidelines
+- Commits: imperative mood, scoped, small. Example: "Add weather handler error mapping".
+- PRs: include overview, testing notes, screenshots for API responses if relevant.
+- Do not commit secrets. `.env` must not be versioned.
+
+## Editor/Automation Rules for Cursor
+- Do not refactor across layers in a single edit unless explicitly requested.
+- When adding endpoints:
+  1) Define request/response DTOs in `internal/dto/` if needed
+  2) Add service method (core)
+  3) Implement adapter/repository as needed (infrastructure)
+  4) Wire handler + router route (interfaces)
+  5) Add Swagger annotations in handler and regenerate docs
+  6) Add tests at handler/service/adapter levels as applicable
+- Prefer minimal diffs; preserve existing indentation and formatting.
+- Before editing multiple files, outline steps and keep edits logically grouped.
+
+## File-Specific Notes
+- `internal/interfaces/http/router/router.go`: mounts Swagger at `/swagger/*any`; keep as-is unless reconfiguring base path.
+- `cmd/server/main.go`: contains `swag` annotations for API metadata; extend thoughtfully.
+- `docs/`: generated; do not hand-edit `docs.go`, `swagger.json`, `swagger.yaml`.
+
+## Security
+- Never log API keys or secrets.
+- Validate and sanitize any user input (city names, etc.).
+
+## Performance
+- Avoid blocking calls in handlers; keep adapter timeouts reasonable; leverage circuit breaker fallbacks when applicable.
+
+---
+These rules guide Cursor in maintaining architecture, quality, and consistency across the project.

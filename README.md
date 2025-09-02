@@ -107,6 +107,26 @@ The server will start on `http://localhost:8080`
 
 The server will start on `http://localhost:8080` (production) or `http://localhost:8081` (development)
 
+## 📘 API Documentation (Swagger)
+
+- **View in Browser**
+  - Local: [Swagger UI](http://localhost:8080/swagger/index.html)
+  - Docker Dev: [Swagger UI (Dev)](http://localhost:8081/swagger/index.html)
+
+- **Regenerate Swagger Docs**
+  1. Install generator (once):
+     ```bash
+     go install github.com/swaggo/swag/cmd/swag@latest
+     ```
+  2. Generate/update docs into the `docs/` folder:
+     ```bash
+     swag init -g cmd/server/main.go -o docs
+     ```
+
+- **Notes**
+  - Swagger UI is served at route prefix `/swagger/*any`.
+  - Keep the import `_ "weather-api/docs"` in `cmd/server/main.go` so the UI can load the generated spec.
+
 ## 📡 API Endpoints
 
 ### Health Check
