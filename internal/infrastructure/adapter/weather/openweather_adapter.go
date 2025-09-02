@@ -7,8 +7,10 @@ import (
 	"io"
 	"net/http"
 	"time"
+
 	"weather-api/internal/core/domain/entity"
 	"weather-api/internal/core/domain/repository"
+	"weather-api/internal/infrastructure/support"
 	"weather-api/pkg/circuitbreaker"
 )
 
@@ -34,8 +36,13 @@ type OpenWeatherResponse struct {
 	} `json:"wind"`
 
 	Name string `json:"name"`
+
+	// Field for capturing error messages from the API
+	Message string `json:"message"`
 }
 
+// NewOpenWeatherAdapter creates a new OpenWeatherAdapter.
+// nolint: unused
 func NewOpenWeatherAdapter(apiKey string) *OpenWeatherAdapter {
 	return &OpenWeatherAdapter{
 		client: &http.Client{
@@ -54,12 +61,12 @@ func (a *OpenWeatherAdapter) GetWeatherByCity(city string) (*entity.Weather, err
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("circuit breaker error: %w", err)
+		return nil, err // Pass the error up, including custom error types
 	}
 
 	weather, ok := result.(*entity.Weather)
 	if !ok {
-		return nil, fmt.Errorf("unexpected result type")
+		return nil, fmt.Errorf("unexpected result type from circuit breaker")
 	}
 
 	return weather, nil
@@ -70,21 +77,38 @@ func (a *OpenWeatherAdapter) fetchWeatherData(city string) (*entity.Weather, err
 	url := fmt.Sprintf("%s?q=%s&appid=%s&units=metric", a.baseURL, city, a.apiKey)
 
 	resp, err := a.client.Get(url)
-
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
+	defer func() { _ = resp.Body.Close() }() // Properly handle close error
 
-	defer resp.Body.Close()
+	// Decode the response body once
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		// Try to decode the error message from the API response
+		var apiResp OpenWeatherResponse
+		_ = json.Unmarshal(body, &apiResp)
+
+		// If the API returns a 404, we return our custom ErrNotFound
+		if resp.StatusCode == http.StatusNotFound {
+			msg := fmt.Sprintf("city '%s' not found", city)
+			if apiResp.Message != "" {
+				msg = apiResp.Message // Use the more specific message from the API if available
+			}
+			return nil, support.NewErrNotFound(msg)
+		}
+
+		// For all other errors, return a generic error
 		return nil, fmt.Errorf("API request failed with status %d: %s", resp.StatusCode, string(body))
 	}
 
 	var apiResp OpenWeatherResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode successful response: %w", err)
 	}
 
 	description := ""

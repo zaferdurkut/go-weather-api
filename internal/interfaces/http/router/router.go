@@ -2,6 +2,8 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 	"weather-api/internal/interfaces/http/handler"
 	"weather-api/internal/interfaces/http/middleware"
 )
@@ -29,6 +31,10 @@ func SetupRouter(weatherHandler *handler.WeatherHandler) *gin.Engine {
 	{
 		weatherGroup.GET("/:city", weatherHandler.GetWeatherByCity)
 	}
+
+	// Swagger endpoint
+	// The URL for the swagger UI is http://localhost:8080/swagger/index.html
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return router
 }

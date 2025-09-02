@@ -1,0 +1,98 @@
+basePath: /
+definitions:
+  dto.WeatherData:
+    properties:
+      city:
+        example: London
+        type: string
+      description:
+        example: scattered clouds
+        type: string
+      humidity:
+        example: 80
+        type: integer
+      temperature:
+        example: 15.5
+        type: number
+      timestamp:
+        type: string
+      wind_speed:
+        example: 4.5
+        type: number
+    type: object
+  dto.WeatherResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.WeatherData'
+      error:
+        example: city not found
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: A simple weather API service built with Go, Gin, and Hexagonal Architecture.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Go Weather API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Checks if the weather service is up and running.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Healthy response
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Service Health Check
+      tags:
+      - Health
+  /weather/{city}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the current weather information for a given city name.
+      parameters:
+      - description: City name
+        in: path
+        name: city
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved weather data
+          schema:
+            $ref: '#/definitions/dto.WeatherResponse'
+        "400":
+          description: Invalid request (e.g., city name is missing)
+          schema:
+            $ref: '#/definitions/dto.WeatherResponse'
+        "404":
+          description: Weather data not found for the specified city
+          schema:
+            $ref: '#/definitions/dto.WeatherResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.WeatherResponse'
+      summary: Get weather by city
+      tags:
+      - Weather
+swagger: "2.0"

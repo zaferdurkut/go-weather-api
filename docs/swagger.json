@@ -1,0 +1,144 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "A simple weather API service built with Go, Gin, and Hexagonal Architecture.",
+        "title": "Go Weather API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/health": {
+            "get": {
+                "description": "Checks if the weather service is up and running.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Service Health Check",
+                "responses": {
+                    "200": {
+                        "description": "Healthy response",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/weather/{city}": {
+            "get": {
+                "description": "Retrieves the current weather information for a given city name.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Weather"
+                ],
+                "summary": "Get weather by city",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "City name",
+                        "name": "city",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved weather data",
+                        "schema": {
+                            "$ref": "#/definitions/dto.WeatherResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request (e.g., city name is missing)",
+                        "schema": {
+                            "$ref": "#/definitions/dto.WeatherResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Weather data not found for the specified city",
+                        "schema": {
+                            "$ref": "#/definitions/dto.WeatherResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.WeatherResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "dto.WeatherData": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "example": "London"
+                },
+                "description": {
+                    "type": "string",
+                    "example": "scattered clouds"
+                },
+                "humidity": {
+                    "type": "integer",
+                    "example": 80
+                },
+                "temperature": {
+                    "type": "number",
+                    "example": 15.5
+                },
+                "timestamp": {
+                    "type": "string"
+                },
+                "wind_speed": {
+                    "type": "number",
+                    "example": 4.5
+                }
+            }
+        },
+        "dto.WeatherResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.WeatherData"
+                },
+                "error": {
+                    "type": "string",
+                    "example": "city not found"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        }
+    }
+}
