@@ -7,6 +7,7 @@ import (
 
 type WeatherRepository interface {
 	GetWeatherByCity(city string) (*entity.Weather, error)
+	GetWeatherOverviewByLatLong(lon float32, lat float32) (*entity.WeatherOverview, error)
 }
 
 var (

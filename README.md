@@ -233,7 +233,17 @@ The application uses environment variables for configuration:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | Server port | `8080` |
+| `GIN_MODE` | Gin mode (`debug`, `release`, `test`) | `debug` |
+| `READ_TIMEOUT` | Server read timeout | `10s` |
+| `WRITE_TIMEOUT` | Server write timeout | `15s` |
+| `IDLE_TIMEOUT` | Server idle timeout | `60s` |
 | `OPENWEATHER_API_KEY` | OpenWeather API key | Required |
+| `OPENWEATHER_BASE_URL` | OpenWeather API base URL | `https://api.openweathermap.org` |
+| `OPENWEATHER_HTTP_TIMEOUT` | OpenWeather HTTP client timeout | `10s` |
+| `OPENWEATHER_RETRY_MAX_ATTEMPTS` | Retry attempts for adapter | `2` |
+| `OPENWEATHER_RETRY_INITIAL_BACKOFF` | Initial backoff duration | `200ms` |
+| `OPENWEATHER_RETRY_MAX_BACKOFF` | Max backoff duration | `2s` |
+| `SWAGGER_BASE_PATH` | Swagger UI base path | `/swagger` |
 
 ### Docker Configuration
 

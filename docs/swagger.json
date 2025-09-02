@@ -44,6 +44,63 @@
                 }
             }
         },
+        "/weather/overview": {
+            "get": {
+                "description": "Retrieves the current weather overview information for a given lat lon.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Weather"
+                ],
+                "summary": "Get weather Overview by Lat Lon",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Lat",
+                        "name": "lat",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Lon",
+                        "name": "lon",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved weather data",
+                        "schema": {
+                            "$ref": "#/definitions/dto.WeatherOverviewResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request (e.g., city name is missing)",
+                        "schema": {
+                            "$ref": "#/definitions/dto.WeatherOverviewResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Weather data not found for the specified city",
+                        "schema": {
+                            "$ref": "#/definitions/dto.WeatherOverviewResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.WeatherOverviewResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/weather/{city}": {
             "get": {
                 "description": "Retrieves the current weather information for a given city name.",
@@ -121,6 +178,51 @@
                 "wind_speed": {
                     "type": "number",
                     "example": 4.5
+                }
+            }
+        },
+        "dto.WeatherOverviewData": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string",
+                    "example": "2023-04-27"
+                },
+                "lat": {
+                    "type": "number",
+                    "example": 38.4
+                },
+                "lon": {
+                    "type": "number",
+                    "example": 38.4
+                },
+                "tz": {
+                    "type": "string",
+                    "example": "+02:00"
+                },
+                "units": {
+                    "type": "string",
+                    "example": "metric"
+                },
+                "weather_overview": {
+                    "type": "string",
+                    "example": "clear sky"
+                }
+            }
+        },
+        "dto.WeatherOverviewResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/dto.WeatherOverviewData"
+                },
+                "error": {
+                    "type": "string",
+                    "example": "lat lon not found"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
                 }
             }
         },

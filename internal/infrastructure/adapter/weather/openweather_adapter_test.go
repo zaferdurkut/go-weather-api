@@ -55,6 +55,9 @@ func TestOpenWeatherAdapter_GetWeatherByCity_Success(t *testing.T) {
 		apiKey:         "test-api-key",
 		baseURL:        mockServer.URL,
 		circuitBreaker: circuitbreaker.NewCircuitBreaker("test-openweather-api"),
+		maxAttempts:    1,
+		initialBackoff: 50 * time.Millisecond,
+		maxBackoff:     100 * time.Millisecond,
 	}
 
 	// Act
@@ -93,7 +96,7 @@ func TestOpenWeatherAdapter_GetWeatherByCity_NotFound(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, weather)
-	assert.Contains(t, err.Error(), "404")
+	assert.Contains(t, err.Error(), "not found")
 }
 
 func TestOpenWeatherAdapter_GetWeatherByCity_InvalidResponse(t *testing.T) {
@@ -120,7 +123,7 @@ func TestOpenWeatherAdapter_GetWeatherByCity_InvalidResponse(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, weather)
-	assert.Contains(t, err.Error(), "failed to decode response")
+	assert.Contains(t, err.Error(), "failed to decode successful response")
 }
 
 func TestOpenWeatherAdapter_GetWeatherByCity_Timeout(t *testing.T) {
@@ -139,6 +142,7 @@ func TestOpenWeatherAdapter_GetWeatherByCity_Timeout(t *testing.T) {
 		apiKey:         "test-api-key",
 		baseURL:        mockServer.URL,
 		circuitBreaker: circuitbreaker.NewCircuitBreaker("test-openweather-api"),
+		maxAttempts:    1,
 	}
 
 	// Act
@@ -147,7 +151,7 @@ func TestOpenWeatherAdapter_GetWeatherByCity_Timeout(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, weather)
-	assert.Contains(t, err.Error(), "circuit breaker error")
+	assert.Contains(t, err.Error(), "timeout")
 }
 
 func TestOpenWeatherAdapter_GetWeatherByCity_EmptyWeatherArray(t *testing.T) {

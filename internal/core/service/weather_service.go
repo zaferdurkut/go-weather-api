@@ -9,6 +9,7 @@ import (
 // It returns a pure domain entity or an error.
 type WeatherServiceInterface interface {
 	GetWeatherByCity(city string) (*entity.Weather, error)
+	GetWeatherOverviewByLatLong(lon float32, lat float32) (*entity.WeatherOverview, error)
 }
 
 // WeatherService handles weather business logic.
@@ -29,10 +30,20 @@ func NewWeatherService(weatherRepo repository.WeatherRepository) *WeatherService
 func (s *WeatherService) GetWeatherByCity(city string) (*entity.Weather, error) {
 	weather, err := s.weatherRepo.GetWeatherByCity(city)
 	if err != nil {
-		// The service's responsibility is to return the error, not to decide
-		// how it will be presented to the user. The handler will take care of that.
 		return nil, err
 	}
 
 	return weather, nil
+}
+
+func (s *WeatherService) GetWeatherOverviewByLatLong(lon float32, lat float32) (*entity.WeatherOverview, error) {
+
+	weatherOverview, err := s.weatherRepo.GetWeatherOverviewByLatLong(lon, lat)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return weatherOverview, nil
+
 }

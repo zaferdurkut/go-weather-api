@@ -1,14 +1,13 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-	"weather-api/internal/core/domain/entity"
 	"weather-api/internal/core/service"
 	"weather-api/internal/dto"
 	"weather-api/internal/infrastructure/support"
+
+	"github.com/gin-gonic/gin"
 )
 
 // WeatherHandler handles HTTP requests for weather endpoints.
@@ -38,32 +37,20 @@ func NewWeatherHandler(weatherService service.WeatherServiceInterface) *WeatherH
 // @Failure      500  {object}  dto.WeatherResponse  "Internal server error"
 // @Router       /weather/{city} [get]
 func (h *WeatherHandler) GetWeatherByCity(c *gin.Context) {
-	city := c.Param("city")
-	if city == "" {
-		c.JSON(http.StatusBadRequest, dto.WeatherResponse{
-			Success: false,
-			Error:   "city parameter is required",
-		})
+	// Bind and validate path parameter using URI binding
+	type cityURI struct {
+		City string `uri:"city" binding:"required,alphaunicode,min=2"`
+	}
+	var params cityURI
+	if err := c.ShouldBindUri(&params); err != nil {
+		writeError(c, support.NewErrBadRequest(err.Error()))
 		return
 	}
 
 	// Call the core service, which returns a pure domain model or an error.
-	weather, err := h.weatherService.GetWeatherByCity(city)
+	weather, err := h.weatherService.GetWeatherByCity(params.City)
 	if err != nil {
-		// If there is an error, map it to the appropriate HTTP status and DTO.
-		// Here we can check for specific error types.
-		var notFoundErr *support.ErrNotFound
-		if errors.As(err, &notFoundErr) {
-			c.JSON(http.StatusNotFound, dto.WeatherResponse{
-				Success: false,
-				Error:   err.Error(),
-			})
-		} else {
-			c.JSON(http.StatusInternalServerError, dto.WeatherResponse{
-				Success: false,
-				Error:   err.Error(),
-			})
-		}
+		writeError(c, err)
 		return
 	}
 
@@ -77,6 +64,54 @@ func (h *WeatherHandler) GetWeatherByCity(c *gin.Context) {
 			Humidity:    weather.Humidity,
 			WindSpeed:   weather.WindSpeed,
 			Timestamp:   weather.Timestamp,
+		},
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetWeatherOverviewByLatLong godoc
+// @Summary      Get weather Overview by Lat Lon
+// @Description  Retrieves the current weather overview information for a given lat lon.
+// @Tags         Weather
+// @Accept       json
+// @Produce      json
+// @Param        lat  query      number  true  "Lat"
+// @Param        lon  query      number  true  "Lon"
+// @Success      200  {object}  dto.WeatherOverviewResponse  "Successfully retrieved weather data"
+// @Failure      400  {object}  dto.WeatherOverviewResponse  "Invalid request (e.g., city name is missing)"
+// @Failure      404  {object}  dto.WeatherOverviewResponse  "Weather data not found for the specified city"
+// @Failure      500  {object}  dto.WeatherOverviewResponse  "Internal server error"
+// @Router       /weather/overview [get]
+func (h *WeatherHandler) GetWeatherOverviewByLatLong(c *gin.Context) {
+	// Bind and validate query parameters with ranges
+	var input struct {
+		Lon float32 `form:"lon" binding:"required,gte=-180,lte=180"`
+		Lat float32 `form:"lat" binding:"required,gte=-90,lte=90"`
+	}
+
+	if err := c.ShouldBindQuery(&input); err != nil {
+		writeError(c, support.NewErrBadRequest(err.Error()))
+		return
+	}
+
+	// Call the core service, which returns a pure domain model or an error.
+	weatherOverview, err := h.weatherService.GetWeatherOverviewByLatLong(input.Lon, input.Lat)
+	if err != nil {
+		writeError(c, err)
+		return
+	}
+
+	// If successful, map the domain model to the response DTO.
+	response := dto.WeatherOverviewResponse{
+		Success: true,
+		Data: &dto.WeatherOverviewData{
+			Lat:             weatherOverview.Lat,
+			Lon:             weatherOverview.Lon,
+			TZ:              weatherOverview.TZ,
+			Date:            weatherOverview.Date,
+			Units:           weatherOverview.Units,
+			WeatherOverview: weatherOverview.WeatherOverview,
 		},
 	}
 

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"testing"
 
 	"weather-api/internal/core/domain/entity"
@@ -9,12 +10,17 @@ import (
 
 // MockWeatherRepository is a mock implementation for testing
 type MockWeatherRepository struct {
-	weather *entity.Weather
-	err     error
+	weather  *entity.Weather
+	overview *entity.WeatherOverview
+	err      error
 }
 
 func (m *MockWeatherRepository) GetWeatherByCity(city string) (*entity.Weather, error) {
 	return m.weather, m.err
+}
+
+func (m *MockWeatherRepository) GetWeatherOverviewByLatLong(lon float32, lat float32) (*entity.WeatherOverview, error) {
+	return m.overview, m.err
 }
 
 func TestWeatherService_GetWeatherByCity_Success(t *testing.T) {
@@ -33,23 +39,20 @@ func TestWeatherService_GetWeatherByCity_Success(t *testing.T) {
 	service := NewWeatherService(mockRepo)
 
 	// Act
-	response, err := service.GetWeatherByCity("Istanbul")
+	weather, err := service.GetWeatherByCity("Istanbul")
 
 	// Assert
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-
-	if !response.Success {
-		t.Errorf("Expected success=true, got %v", response.Success)
+	if weather == nil {
+		t.Fatalf("Expected weather, got nil")
 	}
-
-	if response.Data.City != "Istanbul" {
-		t.Errorf("Expected city=Istanbul, got %s", response.Data.City)
+	if weather.City != "Istanbul" {
+		t.Errorf("Expected city=Istanbul, got %s", weather.City)
 	}
-
-	if response.Data.Temperature != 25.5 {
-		t.Errorf("Expected temperature=25.5, got %f", response.Data.Temperature)
+	if weather.Temperature != 25.5 {
+		t.Errorf("Expected temperature=25.5, got %f", weather.Temperature)
 	}
 }
 
@@ -63,23 +66,17 @@ func TestWeatherService_GetWeatherByCity_Error(t *testing.T) {
 	service := NewWeatherService(mockRepo)
 
 	// Act
-	response, err := service.GetWeatherByCity("InvalidCity")
+	weather, err := service.GetWeatherByCity("InvalidCity")
 
 	// Assert
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
 	}
-
-	if response.Success {
-		t.Errorf("Expected success=false, got %v", response.Success)
+	if !errors.Is(err, repository.ErrCityNotFound) {
+		t.Errorf("Expected ErrCityNotFound, got %v", err)
 	}
-
-	if response.Error == "" {
-		t.Error("Expected error message, got empty string")
-	}
-
-	if response.Data != nil {
-		t.Error("Expected data to be nil when error occurs")
+	if weather != nil {
+		t.Error("Expected nil weather on error")
 	}
 }
 
@@ -93,14 +90,16 @@ func TestWeatherService_GetWeatherByCity_EmptyCity(t *testing.T) {
 	service := NewWeatherService(mockRepo)
 
 	// Act
-	response, err := service.GetWeatherByCity("")
+	weather, err := service.GetWeatherByCity("")
 
 	// Assert
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
 	}
-
-	if response.Success {
-		t.Errorf("Expected success=false, got %v", response.Success)
+	if !errors.Is(err, repository.ErrInvalidCity) {
+		t.Errorf("Expected ErrInvalidCity, got %v", err)
+	}
+	if weather != nil {
+		t.Error("Expected nil weather on error")
 	}
 }

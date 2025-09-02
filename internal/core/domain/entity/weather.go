@@ -12,3 +12,12 @@ type Weather struct {
 	WindSpeed   float64
 	Timestamp   time.Time
 }
+
+type WeatherOverview struct {
+	Lat             float32
+	Lon             float32
+	TZ              string
+	Date            string
+	Units           string
+	WeatherOverview string
+}

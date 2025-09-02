@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"weather-api/internal/core/domain/entity"
+	"weather-api/internal/dto"
+	"weather-api/internal/infrastructure/support"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -18,9 +20,20 @@ type MockWeatherService struct {
 	mock.Mock
 }
 
-func (m *MockWeatherService) GetWeatherByCity(city string) (*entity.WeatherResponse, error) {
+func (m *MockWeatherService) GetWeatherByCity(city string) (*entity.Weather, error) {
 	args := m.Called(city)
-	return args.Get(0).(*entity.WeatherResponse), args.Error(1)
+	if w := args.Get(0); w != nil {
+		return w.(*entity.Weather), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockWeatherService) GetWeatherOverviewByLatLong(lon float32, lat float32) (*entity.WeatherOverview, error) {
+	args := m.Called(lon, lat)
+	if w := args.Get(0); w != nil {
+		return w.(*entity.WeatherOverview), args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func TestWeatherHandler_GetWeatherByCity_Success(t *testing.T) {
@@ -29,18 +42,15 @@ func TestWeatherHandler_GetWeatherByCity_Success(t *testing.T) {
 	mockService := new(MockWeatherService)
 	handler := NewWeatherHandler(mockService)
 
-	expectedResponse := &entity.WeatherResponse{
-		Success: true,
-		Data: &entity.Weather{
-			City:        "Istanbul",
-			Temperature: 25.5,
-			Description: "sunny",
-			Humidity:    60,
-			WindSpeed:   10.5,
-		},
+	expectedWeather := &entity.Weather{
+		City:        "Istanbul",
+		Temperature: 25.5,
+		Description: "sunny",
+		Humidity:    60,
+		WindSpeed:   10.5,
 	}
 
-	mockService.On("GetWeatherByCity", "Istanbul").Return(expectedResponse, nil)
+	mockService.On("GetWeatherByCity", "Istanbul").Return(expectedWeather, nil)
 
 	// Create test request
 	w := httptest.NewRecorder()
@@ -53,10 +63,12 @@ func TestWeatherHandler_GetWeatherByCity_Success(t *testing.T) {
 	// Assert
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var response map[string]interface{}
+	var response dto.WeatherResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, true, response["success"])
+	assert.Equal(t, true, response.Success)
+	assert.NotNil(t, response.Data)
+	assert.Equal(t, "Istanbul", response.Data.City)
 
 	mockService.AssertExpectations(t)
 }
@@ -67,7 +79,7 @@ func TestWeatherHandler_GetWeatherByCity_EmptyCity(t *testing.T) {
 	mockService := new(MockWeatherService)
 	handler := NewWeatherHandler(mockService)
 
-	// Create test request with empty city
+	// Create test request with invalid city (fails binding)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 	c.Params = gin.Params{{Key: "city", Value: ""}}
@@ -78,11 +90,11 @@ func TestWeatherHandler_GetWeatherByCity_EmptyCity(t *testing.T) {
 	// Assert
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 
-	var response map[string]interface{}
+	var response dto.WeatherResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, false, response["success"])
-	assert.Equal(t, "city parameter is required", response["error"])
+	assert.Equal(t, false, response.Success)
+	assert.NotEmpty(t, response.Error)
 }
 
 func TestWeatherHandler_GetWeatherByCity_NotFound(t *testing.T) {
@@ -91,12 +103,7 @@ func TestWeatherHandler_GetWeatherByCity_NotFound(t *testing.T) {
 	mockService := new(MockWeatherService)
 	handler := NewWeatherHandler(mockService)
 
-	expectedResponse := &entity.WeatherResponse{
-		Success: false,
-		Error:   "city not found",
-	}
-
-	mockService.On("GetWeatherByCity", "InvalidCity").Return(expectedResponse, nil)
+	mockService.On("GetWeatherByCity", "InvalidCity").Return(nil, support.NewErrNotFound("city not found"))
 
 	// Create test request
 	w := httptest.NewRecorder()

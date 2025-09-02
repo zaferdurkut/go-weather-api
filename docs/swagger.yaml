@@ -20,6 +20,38 @@ definitions:
         example: 4.5
         type: number
     type: object
+  dto.WeatherOverviewData:
+    properties:
+      date:
+        example: "2023-04-27"
+        type: string
+      lat:
+        example: 38.4
+        type: number
+      lon:
+        example: 38.4
+        type: number
+      tz:
+        example: "+02:00"
+        type: string
+      units:
+        example: metric
+        type: string
+      weather_overview:
+        example: clear sky
+        type: string
+    type: object
+  dto.WeatherOverviewResponse:
+    properties:
+      data:
+        $ref: '#/definitions/dto.WeatherOverviewData'
+      error:
+        example: lat lon not found
+        type: string
+      success:
+        example: true
+        type: boolean
+    type: object
   dto.WeatherResponse:
     properties:
       data:
@@ -93,6 +125,45 @@ paths:
           schema:
             $ref: '#/definitions/dto.WeatherResponse'
       summary: Get weather by city
+      tags:
+      - Weather
+  /weather/overview:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves the current weather overview information for a given
+        lat lon.
+      parameters:
+      - description: Lat
+        in: query
+        name: lat
+        required: true
+        type: number
+      - description: Lon
+        in: query
+        name: lon
+        required: true
+        type: number
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully retrieved weather data
+          schema:
+            $ref: '#/definitions/dto.WeatherOverviewResponse'
+        "400":
+          description: Invalid request (e.g., city name is missing)
+          schema:
+            $ref: '#/definitions/dto.WeatherOverviewResponse'
+        "404":
+          description: Weather data not found for the specified city
+          schema:
+            $ref: '#/definitions/dto.WeatherOverviewResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.WeatherOverviewResponse'
+      summary: Get weather Overview by Lat Lon
       tags:
       - Weather
 swagger: "2.0"

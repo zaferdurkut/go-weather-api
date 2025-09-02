@@ -1,27 +1,32 @@
 package router
 
 import (
+	"weather-api/internal/interfaces/http/handler"
+	"weather-api/internal/interfaces/http/middleware"
+
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"weather-api/internal/interfaces/http/handler"
-	"weather-api/internal/interfaces/http/middleware"
+	"go.uber.org/zap"
 )
 
 // SetupRouter configures and returns the HTTP router
-func SetupRouter(weatherHandler *handler.WeatherHandler) *gin.Engine {
+func SetupRouter(weatherHandler *handler.WeatherHandler, logger *zap.Logger, swaggerBasePath string) *gin.Engine {
 	// Create a new router without any default middleware
 	router := gin.New()
 
 	// Apply CORS middleware to all incoming requests. This should be one of the first middleware.
 	router.Use(middleware.CORS())
 
+	// Request ID must run early to populate context and response header
+	router.Use(middleware.RequestID())
+
 	// Add other essential middleware
 	// Recovery middleware recovers from any panics and writes a 500 if there was one.
 	router.Use(gin.Recovery())
 
-	// Use our custom logger middleware for all requests
-	router.Use(middleware.Logger())
+	// Use structured logger middleware for all requests
+	router.Use(middleware.Logger(logger))
 
 	// Health check endpoint
 	router.GET("/health", weatherHandler.HealthCheck)
@@ -30,11 +35,15 @@ func SetupRouter(weatherHandler *handler.WeatherHandler) *gin.Engine {
 	weatherGroup := router.Group("/weather")
 	{
 		weatherGroup.GET("/:city", weatherHandler.GetWeatherByCity)
+		weatherGroup.GET("/overview", weatherHandler.GetWeatherOverviewByLatLong)
 	}
 
 	// Swagger endpoint
 	// The URL for the swagger UI is http://localhost:8080/swagger/index.html
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	if swaggerBasePath == "" {
+		swaggerBasePath = "/swagger"
+	}
+	router.GET(swaggerBasePath+"/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return router
 }
